@@ -75,7 +75,7 @@ export const SigninForm = () => {
         //   },
         // });
         const data = {
-          userRole: "VENDOR",
+          userRole: "CUSTOMER",
         };
         login(data);
 

@@ -158,22 +158,7 @@ const CustomerRegistrationForm = () => {
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
-      <Box
-        sx={{
-          flex: 1,
-          backgroundColor: "black",
-          color: "white",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontFamily: "monospace",
-          fontSize: "20px",
-          borderRadius: "8px",
-          padding: "15px",
-        }}
-      >
-        <Typography variant="h4">Welcome to MyMobile.com</Typography>
-      </Box>
+
 
       <Box
         sx={{
