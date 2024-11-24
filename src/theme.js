@@ -3,17 +3,23 @@ import { createTheme } from "@mui/material/styles";
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#1976d2",
+      main: "#000000",
     },
     secondary: {
-      main: "#f50057",
+      main: "#ffffff",
     },
     background: {
-      default: "#f4f4f4",
+      default: "#ffffff",
+      paper: "#ffffff",
     },
+    text: {
+      primary: "#000000",
+      secondary: "#757575",
+    },
+    divider: "#000000",
   },
   typography: {
-    fontFamily: "Roboto, sans-serif",
+    fontFamily: "Monospace, sans-serif",
     h1: {
       fontSize: "2rem",
       fontWeight: 500,
