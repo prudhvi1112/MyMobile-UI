@@ -20,7 +20,6 @@ import { Provider } from "react-redux";
 import store from "./redux/Store";
 import Cart from "./components/customer/Cart";
 
-// Role-based route component
 const RoleBasedRoute = ({ children, allowedRole }) => {
   const userData = JSON.parse(localStorage.getItem("user"));
   const userRole = userData?.userRole;
@@ -30,7 +29,6 @@ const RoleBasedRoute = ({ children, allowedRole }) => {
   }
 
   if (userRole !== allowedRole) {
-    // Redirect to appropriate dashboard based on role
     return (
       <Navigate
         to={userRole === "VENDOR" ? "/vendor/products" : "/customer/products"}
@@ -47,7 +45,6 @@ const AppContent = () => {
   const userData = JSON.parse(localStorage.getItem("user"));
   const userRole = userData?.userRole;
 
-  // Redirect to appropriate dashboard after login
   const getDefaultRoute = () => {
     if (!isLoggedIn) return "/login";
     return userRole === "VENDOR" ? "/vendor/products" : "/customer/products";
@@ -64,14 +61,12 @@ const AppContent = () => {
       {isLoggedIn && <Header />}
       <Box sx={{ mt: isLoggedIn ? "64px" : 0 }}>
         <Routes>
-          {/* Public Routes */}
           <Route path="/login" element={<SignInPage />} />
           <Route
             path="/"
             element={<Navigate to={getDefaultRoute()} replace />}
           />
 
-          {/* Vendor Routes */}
           <Route
             path="/vendor/products"
             element={

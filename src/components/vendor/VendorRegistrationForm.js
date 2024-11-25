@@ -128,7 +128,7 @@ const VendorRegistrationForm = () => {
     }
 
     if (!formData.userGstNumber) {
-      tempErrors.userGstNumber = "Vendor ID is required";
+      tempErrors.userGstNumber = "GSTIN  is required";
       isValid = false;
     } else if (
       !/^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]+$/.test(formData.userGstNumber)
@@ -157,16 +157,15 @@ const VendorRegistrationForm = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
     setErrors((prev) => ({
       ...prev,
       [name]: null,
       serverError: null,
-    }));
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
     }));
 
     console.log("Form Data Object", formData);
@@ -184,40 +183,49 @@ const VendorRegistrationForm = () => {
           userRole: formData.userRole,
           userEmail: formData.userEmail,
           userNumber: formData.userNumber,
-          userPincode: null,
+          userPincode: 0,
           userPanNumber: formData.userPanNumber,
           userGstNumber: formData.userGstNumber,
         };
 
-        const response = await axios.post(
-          "http://192.168.0.124:9998/register/",
-          userRequest,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response = await axios({
+          method: "post",
+          url: "http://192.168.0.124:9998/register/",
+          data: userRequest,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
 
         if (response.data) {
           console.log("Registration successful:", response.data);
           setShowSuccess(true);
         }
       } catch (error) {
-        if (error.response?.data?.fieldErrors) {
+        console.error("Registration error:", error);
+
+        if (error.response && error.response.data) {
+          const errorData = error.response.data;
+          console.log("Error data:", errorData);
+
+          const newErrors = {};
+
+          // Map each field error from the response
+          Object.keys(errorData).forEach((field) => {
+            newErrors[field] = errorData[field];
+          });
+
           setErrors((prev) => ({
             ...prev,
-            ...error.response.data.fieldErrors, // Spread the fieldErrors directly
+            ...newErrors,
+            serverError: null,
           }));
-
-          console.log("Field Errors:", error.response.data.fieldErrors);
         } else {
           setErrors((prev) => ({
             ...prev,
             serverError: "Network error. Please try again.",
           }));
         }
-        console.error("Registration error:", error.response?.data);
       }
     }
   };
@@ -291,7 +299,22 @@ const VendorRegistrationForm = () => {
                   size="small"
                   name="userId"
                   value={formData.userId}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const value = e.target.value
+                      .replace(/[^A-Z0-9]/gi, "")
+                      .toUpperCase();
+                    if (value.length <= 10) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        userId: value,
+                      }));
+                      setErrors((prev) => ({
+                        ...prev,
+
+                        userId: null,
+                      }));
+                    }
+                  }}
                   error={Boolean(errors.userId)}
                   helperText={errors.userId}
                   inputProps={{

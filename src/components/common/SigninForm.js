@@ -62,21 +62,19 @@ export const SigninForm = () => {
     event.preventDefault();
     if (validate()) {
       try {
-        // const requestData = {
-        //   userId: formData.userId,
-        //   password: formData.userPassword, // Transform to match backend
-        // };
-        // const response = await axios({
-        //   method: "post",
-        //   url: "http://localhost:8080/mymobile/users/login",
-        //   data: requestData,
-        //   headers: {
-        //     "Content-Type": "application/json",
-        //   },
-        // });
-        const data = {
-          userRole: "CUSTOMER",
+        const requestData = {
+          userId: formData.userId,
+          userPassword: formData.userPassword, // Transform to match backend
         };
+        const response = await axios({
+          method: "post",
+          url: "http://192.168.0.124:9998/user/login",
+          data: requestData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const data = response.data;
         login(data);
 
         if (data.userRole === "VENDOR") {

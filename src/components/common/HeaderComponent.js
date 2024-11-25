@@ -4,14 +4,39 @@ import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
 import { LogoutOutlined } from "@mui/icons-material";
 import { useAuth } from "../../components/common/AuthContext";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Header = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user"));
+      if (!userData || !userData.userId) {
+        console.error("No user ID found");
+        logout();
+        navigate("/login");
+        return;
+      }
+
+      const response = await axios({
+        method: "put",
+        url: `http://192.168.0.124:9998/logout/${userData.userId}`,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Logout successful:", response.data);
+      logout(); // Clear local state/context
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Still logout user from frontend even if API call fails
+      logout();
+      navigate("/login");
+    }
   };
 
   return (

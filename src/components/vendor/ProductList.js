@@ -38,6 +38,7 @@ import {
 } from "@mui/icons-material";
 import { dummyProducts } from "../../mock/Products";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Row = ({ product }) => {
   const [openDescription, setOpenDescription] = useState(false);
@@ -271,18 +272,16 @@ const ProductList = () => {
   const fetchProducts = async () => {
     setIsLoading(true);
     setError(null);
+
     try {
-      // Simulate API delay and potential error
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const userData = JSON.parse(localStorage.getItem("user"));
+      const userId = userData.userId;
 
-      // Simulate random error for demonstration (remove in production)
-      if (Math.random() < 0.3) {
-        // 30% chance of error
-        throw new Error("Failed to fetch products. Please try again.");
-      }
-
-      setProducts(dummyProducts);
-      setFilteredProducts(dummyProducts);
+      const response = await axios.get(
+        `http://192.168.0.124:9998/vendor/products/${userId}`
+      );
+      setProducts(response.data);
+      setFilteredProducts(response.data);
     } catch (error) {
       setError(error.message || "An unexpected error occurred");
       setProducts([]);
