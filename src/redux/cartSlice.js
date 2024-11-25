@@ -5,12 +5,17 @@ export const postCart = createAsyncThunk(
   "cart/postCart",
   async (cartData, { rejectWithValue }) => {
     try {
-      const response = await fetch("https://your-api-endpoint.com/cart", {
+      const { userId, productId, quantity } = cartData;
+
+      // Construct the API URL with path parameters
+      const url = `/api/customers/${userId}/products/${productId}?quantity=${quantity}`;
+
+      // Send the POST request
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(cartData), // Convert the cart data to a JSON string
       });
 
       if (!response.ok) {
@@ -25,6 +30,25 @@ export const postCart = createAsyncThunk(
   }
 );
 
+// Define async thunk to fetch cart data from API
+export const fetchCartData = createAsyncThunk(
+  "cart/fetchCartData",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await fetch(
+        `https://your-api-endpoint.com/cart/${userId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch cart data");
+      }
+      const data = await response.json();
+      return data; // Return the cart data on success
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to fetch cart data");
+    }
+  }
+);
+
 const cartSlice = createSlice({
   name: "cart",
   initialState: {
@@ -32,7 +56,7 @@ const cartSlice = createSlice({
     totalQuantity: 0,
     totalPrice: 0,
     status: null, // Status for tracking the async operation (loading, succeeded, failed)
-    error: null,  // Error message if the operation fails
+    error: null, // Error message if the operation fails
   },
   reducers: {
     addToCart: (state, action) => {
@@ -99,10 +123,26 @@ const cartSlice = createSlice({
       .addCase(postCart.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+      })
+
+      //getting cart items from cart/api
+      .addCase(fetchCartData.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchCartData.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.items = action.payload.items;
+        state.totalQuantity = action.payload.totalQuantity;
+        state.totalPrice = action.payload.totalPrice;
+      })
+      .addCase(fetchCartData.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
       });
   },
 });
 
-export const { addToCart, removeFromCart, updateCartItem, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, updateCartItem, clearCart } =
+  cartSlice.actions;
 
 export default cartSlice.reducer;

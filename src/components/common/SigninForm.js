@@ -64,7 +64,7 @@ export const SigninForm = () => {
       try {
         const requestData = {
           userId: formData.userId,
-          userPassword: formData.userPassword, // Transform to match backend
+          userPassword: formData.userPassword,
         };
         const response = await axios({
           method: "post",
@@ -91,19 +91,16 @@ export const SigninForm = () => {
           const errorData = error.response.data;
           console.log("Error data:", errorData);
 
-          // Handle fieldErrors directly since it exists in your response
-          if (errorData.fieldErrors) {
-            setErrors((prev) => ({
-              ...prev,
-              ...errorData.fieldErrors,
-            }));
-          } else {
-            // General error handling
-            setErrors((prev) => ({
-              ...prev,
-              serverError: errorData.error || "An error occurred during login",
-            }));
-          }
+          setErrors((prev) => ({
+            ...prev,
+            ...errorData,
+            serverError: null,
+          }));
+        } else {
+          setErrors((prev) => ({
+            ...prev,
+            serverError: "Network error. Please check your connection.",
+          }));
         }
       }
     }

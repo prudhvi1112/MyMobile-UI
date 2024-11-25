@@ -6,6 +6,7 @@ import {
   Button,
   CardMedia,
   Box,
+  Divider,
 } from "@mui/material";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../redux/cartSlice";
@@ -13,7 +14,7 @@ import { addToCart } from "../../redux/cartSlice";
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
 
-  // Ensure all displayed values are strings and exist
+  // Destructure product fields with defaults
   const {
     productId = "",
     brand = "",
@@ -21,6 +22,9 @@ const ProductCard = ({ product }) => {
     price = 0,
     imageOfProduct = "",
     model = "",
+    productFeatures = "",
+    quantity = 0,
+    color = "",
   } = product || {};
 
   const handleAddToCart = () => {
@@ -50,10 +54,15 @@ const ProductCard = ({ product }) => {
         boxShadow: 3,
       }}
     >
+      {/* Product Image */}
       <CardMedia
         component="img"
-        image={imageOfProduct || "/placeholder-image.jpg"}
-        alt={String(model || "Product Image")}
+        src={
+          product.imageOfProduct
+            ? `data:image/jpeg;base64,${product.imageOfProduct}`
+            : "https://via.placeholder.com/200/000000/FFFFFF?text=No+Image"
+        }
+        alt={product.model}
         sx={{ height: 200, objectFit: "cover" }}
       />
 
@@ -91,6 +100,21 @@ const ProductCard = ({ product }) => {
           {String(description || "No description available")}
         </Typography>
 
+        <Divider sx={{ marginY: 1 }} />
+
+        {/* Additional Information */}
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Color:</strong> {String(color || "N/A")}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Quantity Available:</strong> {quantity > 0 ? quantity : "Out of Stock"}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          <strong>Features:</strong> {String(productFeatures || "N/A")}
+        </Typography>
+
+        <Divider sx={{ marginY: 2 }} />
+
         {/* Price */}
         <Box
           sx={{
@@ -118,8 +142,9 @@ const ProductCard = ({ product }) => {
             },
             padding: "10px 0",
           }}
+          disabled={quantity === 0} // Disable button if quantity is 0
         >
-          Add to Cart
+          {quantity > 0 ? "Add to Cart" : "Out of Stock"}
         </Button>
       </CardContent>
     </Card>

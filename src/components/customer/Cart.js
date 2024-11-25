@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   removeFromCart,
   updateCartItem,
   clearCart,
 } from "../../redux/cartSlice";
-import { postCart } from "../../redux/cartSlice"; // import the async action for posting cart
+
+import { postCart, fetchCartData } from "../../redux/cartSlice"; // import the async action for posting cart
 import {
   Box,
   Typography,
@@ -64,16 +65,30 @@ const Cart = () => {
     };
 
     try {
+      for (let item of items) {
+        // Destructure to get productId and quantity
+        const { productId, quantity } = item;
+
+        const userId = userData?.userId;
+
+        // Dispatch the action with the correct parameters
+        await dispatch(postCart({ userId, productId, quantity })).unwrap();
+      }
       // Dispatch the postCart async action
-      await dispatch(postCart(cartRequest)).unwrap();
       // If the API call is successful, clear the cart and navigate to the home page
       dispatch(clearCart());
-      navigate("/");
+      navigate("/cutomer/products");
     } catch (error) {
       // Handle any errors here
       setServerError(error.message || "Failed to post cart");
     }
   };
+
+  useEffect(() => {
+    if (userData?.userId) {
+      dispatch(fetchCartData(userData.userId)); // Fetch cart data based on user ID
+    }
+  }, [dispatch, userData]);
 
   const formatPrice = (price) => {
     return price.toFixed(2);
@@ -125,7 +140,6 @@ const Cart = () => {
             Looks like you haven't added anything to your cart yet. Start
             shopping now!
           </Typography>
-          
         </Box>
       ) : (
         <Grid container spacing={4}>
@@ -147,8 +161,12 @@ const Cart = () => {
                     <CardMedia
                       component="img"
                       height="200"
-                      image={item.imageOfProduct}
-                      alt={item.model}
+                      src={
+                        item.imageOfProduct
+                          ? `data:image/jpeg;base64,${item.imageOfProduct}`
+                          : "https://via.placeholder.com/200/000000/FFFFFF?text=No+Image"
+                      }
+                      alt={item.model || "Product Image"}
                       sx={{
                         objectFit: "cover",
                         border: "2px solid #000",
@@ -303,7 +321,11 @@ const Cart = () => {
                 </Button>
               </Box>
               {serverError && (
-                <Typography variant="body2" color="error" sx={{ textAlign: "center", marginTop: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="error"
+                  sx={{ textAlign: "center", marginTop: 2 }}
+                >
                   {serverError}
                 </Typography>
               )}
