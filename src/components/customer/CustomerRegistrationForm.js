@@ -175,7 +175,7 @@ const CustomerRegistrationForm = () => {
         <Box
           sx={{
             width: "100%",
-            maxWidth: "70%",
+            maxWidth: "80%",
             padding: "20px",
             maxHeight: "80%",
             overflowY: "auto",
@@ -187,7 +187,7 @@ const CustomerRegistrationForm = () => {
           <form onSubmit={handleSubmit}>
             <Grid container spacing={2}>
               {customerFields.map((field) => (
-                <Grid item xs={12} sm={6} key={field.name}>
+                <Grid item xs={12} sm={6}  key={field.name} >
                   <TextField
                     label={field.label}
                     type={field.type}

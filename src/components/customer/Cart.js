@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   removeFromCart,
   updateCartItem,
   clearCart,
 } from "../../redux/cartSlice";
+import { postCart } from "../../redux/cartSlice"; // import the async action for posting cart
 import {
   Box,
   Typography,
@@ -21,17 +22,17 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import { Delete } from "@mui/icons-material";
+import { Delete, ArrowBack } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const userData = localStorage.getItem("user");
+  const [serverError, setServerError] = useState("");
   const { items, totalQuantity, totalPrice } = useSelector(
     (state) => state.cart
   );
-  console.log("products", items);
 
   const handleIncreaseQuantity = (item) => {
     dispatch(
@@ -51,16 +52,27 @@ const Cart = () => {
     dispatch(removeFromCart(id));
   };
 
-  const handleCheckout = () => {
+  const handleCartToProduct = () => {
+    navigate("/customer/products");
+  };
+
+  const handleCheckout = async () => {
     const cartRequest = {
       userId: userData?.userId,
       userRole: "CUSTOMER",
       products: items,
     };
-    //api call to post cart request
 
-    dispatch(clearCart());
-    navigate("/");
+    try {
+      // Dispatch the postCart async action
+      await dispatch(postCart(cartRequest)).unwrap();
+      // If the API call is successful, clear the cart and navigate to the home page
+      dispatch(clearCart());
+      navigate("/");
+    } catch (error) {
+      // Handle any errors here
+      setServerError(error.message || "Failed to post cart");
+    }
   };
 
   const formatPrice = (price) => {
@@ -69,8 +81,20 @@ const Cart = () => {
 
   return (
     <Box sx={{ padding: 2, minHeight: "100vh" }}>
-      <Typography variant="h4" gutterBottom align="center" color="black">
-        Your Cart
+      <Typography variant="h4" gutterBottom align="left" color="black">
+        <Button
+          onClick={handleCartToProduct}
+          variant="contained"
+          color="secondary"
+          startIcon={<ArrowBack />}
+          sx={{
+            paddingX: 4,
+            paddingY: 1.5,
+            fontSize: "1rem",
+          }}
+        >
+          Go To Products
+        </Button>
       </Typography>
       {items.length === 0 ? (
         <Box
@@ -101,22 +125,11 @@ const Cart = () => {
             Looks like you haven't added anything to your cart yet. Start
             shopping now!
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/")}
-            sx={{
-              paddingX: 4,
-              paddingY: 1.5,
-              fontSize: "1rem",
-            }}
-          >
-            Go to Products
-          </Button>
+          
         </Box>
       ) : (
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={7}>
             <Grid container spacing={3}>
               {items.map((item) => (
                 <Grid item xs={12} sm={6} key={item.productId}>
@@ -136,6 +149,11 @@ const Cart = () => {
                       height="200"
                       image={item.imageOfProduct}
                       alt={item.model}
+                      sx={{
+                        objectFit: "cover",
+                        border: "2px solid #000",
+                        borderRadius: "4px",
+                      }}
                     />
                     <CardContent sx={{ flexGrow: 1 }}>
                       <Typography variant="h6" gutterBottom color="black">
@@ -284,6 +302,11 @@ const Cart = () => {
                   Checkout
                 </Button>
               </Box>
+              {serverError && (
+                <Typography variant="body2" color="error" sx={{ textAlign: "center", marginTop: 2 }}>
+                  {serverError}
+                </Typography>
+              )}
             </Card>
           </Grid>
         </Grid>
