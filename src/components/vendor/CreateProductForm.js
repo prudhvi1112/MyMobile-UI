@@ -229,10 +229,10 @@ const ProductForm = () => {
         if (error.response && error.response.data) {
           const errorData = error.response.data;
 
-          if (errorData.fieldErrors) {
+          if (errorData) {
             setErrors((prev) => ({
               ...prev,
-              ...errorData.fieldErrors,
+              ...errorData,
               serverError: null,
             }));
           } else {
