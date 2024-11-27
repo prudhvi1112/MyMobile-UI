@@ -80,7 +80,6 @@ const ProductForm = () => {
     let tempErrors = {};
     let isValid = true;
 
-    // Product ID validation
     if (!formData.productId) {
       tempErrors.productId = "Product ID is required";
       isValid = false;
@@ -90,7 +89,6 @@ const ProductForm = () => {
       isValid = false;
     }
 
-    // Required field validations
     const requiredFields = [
       "model",
       "brand",
@@ -291,7 +289,6 @@ const ProductForm = () => {
             overflow: "hidden",
           }}
         >
-          {/* Form Section */}
           <Box
             sx={{
               flex: "0 0 70%",

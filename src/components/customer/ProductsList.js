@@ -53,7 +53,9 @@ const ProductsList = () => {
     setSelectedBrand(event.target.value);
   };
 
-  const uniqueBrands = [...new Set(products.map((product) => product.brand.trim()))];
+  const uniqueBrands = [
+    ...new Set(products.map((product) => product.brand.trim())),
+  ];
 
   const filteredProducts = products.filter(
     (product) =>
@@ -61,6 +63,7 @@ const ProductsList = () => {
       product.price <= (priceRange.max || Infinity) &&
       (selectedBrand === "" || product.brand.trim() === selectedBrand)
   );
+  console.log("filtered proudcts", filteredProducts);
 
   return (
     <Box sx={{ display: "flex", padding: 3 }}>

@@ -5,7 +5,8 @@ import {
   fetchCartData,
   removeFromCart,
   updateCartItem,
-  removeProductFromCartAPI
+  removeProductFromCartAPI,
+  clearCart,
 } from "../../redux/cartSlice";
 import {
   Box,
@@ -24,30 +25,33 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { useNavigate } from "react-router-dom";
+import CheckoutSuccess from "../common/CheckoutSuccess";
+
+import axios from "axios";
 
 const Cart = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Get the cart data from the Redux store
   const cartData = useSelector((state) => state.cart.items);
-  const loading = useSelector((state) => state.cart.loading); // Assuming loading state is in Redux
-  const error = useSelector((state) => state.cart.error); // Assuming error state is in Redux
-  const Quantity = useSelector((state) => state.cart.totalQuantity); // Assuming error state is in Redux
+  const loading = useSelector((state) => state.cart.loading);
+  const error = useSelector((state) => state.cart.error);
+  const Quantity = useSelector((state) => state.cart.totalQuantity);
+  const Price = useSelector((state) => state.cart.totalPrice);
 
   const userId = JSON.parse(localStorage.getItem("user"))?.userId;
 
   const [totalQuantity, setTotalQuantity] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
 
-  // Fetch cart data when the component mounts
+  const [isCheckoutSuccess, setIsCheckoutSuccess] = useState(false);
+
   useEffect(() => {
     if (userId) {
       dispatch(fetchCartData(userId));
     }
   }, [dispatch, userId]);
 
-  // Recalculate total price and total quantity when cart data changes
   useEffect(() => {
     let quantity = 0;
     let price = 0;
@@ -55,55 +59,12 @@ const Cart = () => {
     cartData.forEach((item) => {
       quantity += item.quantity;
       price += item.quantity * item.price;
+      console.log("item id: ", item.id);
     });
 
     setTotalQuantity(quantity);
     setTotalPrice(price);
   }, [cartData]);
-
-  const handleDecreaseQuantity = async (item) => {
-    if (item.quantity > 1) {
-      const updatedProduct = {
-        ...item,
-        quantity: item.quantity - 1,
-      };
-      try {
-        const actionResult = await dispatch(
-          addProductToCartAPI({ product: updatedProduct })
-        );
-
-        if (addProductToCartAPI.fulfilled.match(actionResult)) {
-          dispatch(updateCartItem(updatedProduct));
-        } else {
-          console.error("Error while updating product quantity:", actionResult.payload);
-        }
-      } catch (error) {
-        console.error("Unexpected error:", error);
-      }
-    } else {
-      dispatch(removeFromCart(item.productId));
-    }
-  };
-
-  const handleIncreaseQuantity = async (item) => {
-    const updatedProduct = {
-      ...item,
-      quantity: item.quantity + 1,
-    };
-    try {
-      const actionResult = await dispatch(
-        addProductToCartAPI({ product: updatedProduct })
-      );
-
-      if (addProductToCartAPI.fulfilled.match(actionResult)) {
-        dispatch(updateCartItem(updatedProduct));
-      } else {
-        console.error("Error while updating product quantity:", actionResult.payload);
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error);
-    }
-  };
 
   const handleRemoveProduct = async (item) => {
     try {
@@ -114,7 +75,10 @@ const Cart = () => {
       if (removeProductFromCartAPI.fulfilled.match(actionResult)) {
         dispatch(removeFromCart(item.productId));
       } else {
-        console.error("Error while removing product from cart:", actionResult.payload);
+        console.error(
+          "Error while removing product from cart:",
+          actionResult.payload
+        );
       }
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -123,6 +87,30 @@ const Cart = () => {
 
   const handleGoToProductsList = () => {
     navigate("/customer/products");
+  };
+
+  const handleCheckout = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user"));
+      const userId = userData.userId;
+
+      const cartIteams = cartData;
+
+      const response = await axios.put(
+        `http://192.168.0.124:9998/cart/checkout/${userId}`,
+        cartIteams
+      );
+
+      if (response.status === 200) {
+        setIsCheckoutSuccess(true);
+        setTimeout(() => {
+          navigate("/customer/products");
+        }, 2000);
+        dispatch(clearCart());
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+    }
   };
 
   const CartProducts = () => (
@@ -138,7 +126,7 @@ const Cart = () => {
                     ? `data:image/jpeg;base64,${item.imageOfProduct}`
                     : "https://via.placeholder.com/200/000000/FFFFFF?text=No+Image"
                 }
-                alt={item.model}
+                alt={item.brand}
                 sx={{ height: 200, objectFit: "cover" }}
               />
               <CardContent>
@@ -146,13 +134,23 @@ const Cart = () => {
                 <Typography variant="body2">
                   ₹{new Intl.NumberFormat("en-IN").format(item.price)}
                 </Typography>
-                <Typography variant="body2">Quantity: {item.quantity}</Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, marginTop: 1 }}>
-                  
+                <Typography variant="body2">
+                  Quantity: {item.quantity}
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    marginTop: 1,
+                  }}
+                >
                   <Typography>{Quantity}</Typography>
-                 
                 </Box>
-                <IconButton sx={{ marginTop: 1 }} onClick={() => handleRemoveProduct(item)}>
+                <IconButton
+                  sx={{ marginTop: 1 }}
+                  onClick={() => handleRemoveProduct(item)}
+                >
                   <DeleteIcon />
                 </IconButton>
               </CardContent>
@@ -172,8 +170,10 @@ const Cart = () => {
     <Box flex={1}>
       <Typography variant="h6">Cart Summary</Typography>
       <Box sx={{ marginTop: 2 }}>
-        <Typography>Total Items: {totalQuantity}</Typography>
-        <Typography>Total Price: ₹{new Intl.NumberFormat("en-IN").format(totalPrice)}</Typography>
+        <Typography>Total Items: {Quantity}</Typography>
+        <Typography>
+          Total Price: ₹{new Intl.NumberFormat("en-IN").format(Price)}
+        </Typography>
       </Box>
       <Button
         variant="contained"
@@ -181,6 +181,7 @@ const Cart = () => {
         fullWidth
         sx={{ marginTop: 2 }}
         disabled={totalQuantity === 0}
+        onClick={handleCheckout}
       >
         Checkout
       </Button>
@@ -189,23 +190,34 @@ const Cart = () => {
 
   return (
     <Container maxWidth="lg" sx={{ marginTop: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        <Button onClick={handleGoToProductsList} variant="contained">Go To Products</Button>
-      </Typography>
-
-      {loading && <CircularProgress />}
-      {error && <Alert severity="error">{error}</Alert>}
-
-      {cartData.length === 0 && !loading ? (
-        <Typography variant="h6" sx={{ textAlign: "center", marginTop: 3 }}>
-          Your cart is empty.
-          
-        </Typography>
+      {isCheckoutSuccess ? (
+        <CheckoutSuccess />
       ) : (
-        <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={3}>
-          <CartProducts />
-          <CartSummary />
-        </Box>
+        <>
+          <Typography variant="h4" gutterBottom>
+            <Button onClick={handleGoToProductsList} variant="contained">
+              Go To Products
+            </Button>
+          </Typography>
+
+          {loading && <CircularProgress />}
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {cartData.length === 0 && !loading ? (
+            <Typography variant="h6" sx={{ textAlign: "center", marginTop: 3 }}>
+              Your cart is empty.
+            </Typography>
+          ) : (
+            <Box
+              display="flex"
+              flexDirection={{ xs: "column", md: "row" }}
+              gap={3}
+            >
+              <CartProducts />
+              <CartSummary />
+            </Box>
+          )}
+        </>
       )}
     </Container>
   );

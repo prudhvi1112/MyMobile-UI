@@ -36,7 +36,6 @@ import {
   Refresh as RefreshIcon,
   Error as ErrorIcon,
 } from "@mui/icons-material";
-import { dummyProducts } from "../../mock/Products";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -281,7 +280,6 @@ const ProductList = () => {
         `http://192.168.0.124:9998/vendor/products/${userId}`
       );
       if (Array.isArray(response.data)) {
-
         setProducts(response.data);
         setFilteredProducts(response.data);
       }
@@ -664,7 +662,7 @@ const ProductList = () => {
                 </TableRow>
               ) : (
                 filteredProducts
-                  .slice(page  *rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((product) => (
                     <Row key={product.productId} product={product} />
                   ))

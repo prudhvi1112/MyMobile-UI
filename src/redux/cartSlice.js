@@ -21,12 +21,12 @@ export const addProductToCartAPI = createAsyncThunk(
   "cart/addProductToCartAPI",
   async ({ product, itemQuantity }, { rejectWithValue }) => {
     const userData = JSON.parse(localStorage.getItem("user"));
-    console.log("product",product);
+    console.log("product", product);
     console.log("item quantity", itemQuantity);
     try {
       const payload = {
-        ...product,  // Include the entire product object
-        itemQuantity:itemQuantity// Ensure we use the cart item's quantity
+        ...product, // Include the entire product object
+        itemQuantity: itemQuantity, // Ensure we use the cart item's quantity
       };
 
       const response = await axios.post(
@@ -57,6 +57,16 @@ export const removeProductFromCartAPI = createAsyncThunk(
         error.response?.data || "Failed to remove product from cart"
       );
     }
+  }
+);
+
+export const clearCartAPI = createAsyncThunk(
+  "cart/clearCart",
+  async (userId) => {
+    const response = await axios.post(
+      `http://192.168.0.124:9998/cart/clear/${userId}`
+    );
+    return response.data;
   }
 );
 
@@ -111,7 +121,8 @@ const cartSlice = createSlice({
       );
 
       if (itemToUpdate) {
-        const quantityDiff = updatedProduct.itemQuantity - itemToUpdate.quantity;
+        const quantityDiff =
+          updatedProduct.itemQuantity - itemToUpdate.quantity;
         state.totalQuantity += quantityDiff;
         state.totalPrice += quantityDiff * itemToUpdate.price;
         itemToUpdate.quantity = updatedProduct.itemQuantity; // Update the quantity of the item
@@ -130,8 +141,10 @@ const cartSlice = createSlice({
         // Ensure the items array is correctly extracted from the response
         const items = action.payload || []; // Assuming payload is an array of items
         state.items = items.map((item) => ({
+          barcodeid: item.barcodeid,
           productId: item.productId,
-          quantity: item.itemQuantity,
+          itemQuantity: item.itemQuantity,
+          model: item.model,
           price: item.price,
           brand: item.brand,
           imageOfProduct: item.imageOfProduct,

@@ -16,15 +16,15 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 
 const ProductCard = ({ product }) => {
+  console.log("Product prop:", product); // Logs the product prop passed to this component
+
   const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(0); // Initial quantity is set to 0
 
   const handleAddToCart = (product, itemQuantity) => {
     if (itemQuantity > 0) {
-      dispatch(addProductToCartAPI({ product, itemQuantity }))
-        .unwrap()
-        
-    } 
+      dispatch(addProductToCartAPI({ product, itemQuantity })).unwrap();
+    }
   };
 
   // Increase quantity
@@ -38,6 +38,7 @@ const ProductCard = ({ product }) => {
       setQuantity((prevQuantity) => prevQuantity - 1); // Decrement quantity
     }
   };
+  const isQuantityValid = quantity > 0 && quantity <= product.quantity;
 
   // Format price to handle different numeric formats
   const formattedPrice =
@@ -119,7 +120,7 @@ const ProductCard = ({ product }) => {
           {product.quantity > 0 ? product.quantity : "Out of Stock"}
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Features:</strong> {String(product.features || "N/A")}
+          <strong>Features:</strong> {String(product.productFeatures || "N/A")}
         </Typography>
 
         <Divider sx={{ marginY: 2 }} />
@@ -168,7 +169,7 @@ const ProductCard = ({ product }) => {
         {/* Add to Cart Button */}
         <Button
           variant="contained"
-          onClick={() => handleAddToCart(product, quantity)} // Use the updated quantity
+          onClick={() => handleAddToCart(product, quantity)}
           fullWidth
           sx={{
             backgroundColor: "primary.main",
@@ -177,9 +178,13 @@ const ProductCard = ({ product }) => {
             },
             padding: "10px 0",
           }}
-          disabled={product.quantity === 0} // Disable button if quantity is 0
+          disabled={!isQuantityValid}
         >
-          {product.quantity > 0 ? "Add to Cart" : "Out of Stock"}
+          {product.quantity > 0
+            ? quantity > product.quantity
+              ? "Exceeds Available Stock"
+              : "Add to Cart"
+            : "Out of Stock"}
         </Button>
       </CardContent>
     </Card>
