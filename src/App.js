@@ -9,6 +9,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import Header from "./components/common/HeaderComponent";
@@ -42,6 +43,7 @@ const RoleBasedRoute = ({ children, allowedRole }) => {
 
 const AppContent = () => {
   const { isLoggedIn } = useAuth();
+  const location = useLocation();
   const userData = JSON.parse(localStorage.getItem("user"));
   const userRole = userData?.userRole;
 
@@ -58,8 +60,10 @@ const AppContent = () => {
         minHeight: "100vh",
       }}
     >
-      {isLoggedIn && <Header />}
-      <Box sx={{ mt: isLoggedIn ? "64px" : 0 }}>
+      {isLoggedIn && location.pathname !== "/login" && <Header />}
+      <Box
+        sx={{ mt: isLoggedIn && location.pathname !== "/login" ? "64px" : 0 }}
+      >
         <Routes>
           <Route path="/login" element={<SignInPage />} />
           <Route
@@ -88,12 +92,11 @@ const AppContent = () => {
             }
           />
 
-          {/* Customer Routes */}
           <Route
             path="/customer/products"
             element={
               <PrivateRoute>
-                <RoleBasedRoute allowedRole="CUSTOMER">
+                <RoleBasedRoute allowedRole="customer">
                   <ProductsList />
                 </RoleBasedRoute>
               </PrivateRoute>
@@ -103,14 +106,13 @@ const AppContent = () => {
             path="/customer/cart"
             element={
               <PrivateRoute>
-                <RoleBasedRoute allowedRole="CUSTOMER">
+                <RoleBasedRoute allowedRole="customer">
                   <Cart />
                 </RoleBasedRoute>
               </PrivateRoute>
             }
           />
 
-          {/* Catch-all route - redirect to appropriate dashboard */}
           <Route
             path="*"
             element={<Navigate to={getDefaultRoute()} replace />}

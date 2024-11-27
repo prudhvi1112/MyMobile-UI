@@ -252,8 +252,8 @@ const NumericFilter = ({ value, onChange, label }) => (
 
 const ProductList = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState(dummyProducts);
-  const [filteredProducts, setFilteredProducts] = useState(dummyProducts);
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -280,8 +280,12 @@ const ProductList = () => {
       const response = await axios.get(
         `http://192.168.0.124:9998/vendor/products/${userId}`
       );
-      setProducts(response.data);
-      setFilteredProducts(response.data);
+      if (Array.isArray(response.data)) {
+
+        setProducts(response.data);
+        setFilteredProducts(response.data);
+      }
+      console.log(response.data);
     } catch (error) {
       setError(error.message || "An unexpected error occurred");
       setProducts([]);
@@ -660,7 +664,7 @@ const ProductList = () => {
                 </TableRow>
               ) : (
                 filteredProducts
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .slice(page  *rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((product) => (
                     <Row key={product.productId} product={product} />
                   ))

@@ -1,4 +1,3 @@
-// Header.jsx
 import React from "react";
 import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
 import { LogoutOutlined } from "@mui/icons-material";
@@ -9,6 +8,10 @@ import axios from "axios";
 const Header = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const userData = JSON.parse(localStorage.getItem("user"));
+  const formattedLoginTime = userData?.lastLoginTime
+  ? new Date(userData.lastLoginTime).toLocaleString()
+  : null;
 
   const handleLogout = async () => {
     try {
@@ -29,11 +32,10 @@ const Header = () => {
       });
 
       console.log("Logout successful:", response.data);
-      logout(); // Clear local state/context
+      logout();
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
-      // Still logout user from frontend even if API call fails
       logout();
       navigate("/login");
     }
@@ -82,25 +84,64 @@ const Header = () => {
           </Typography>
         </Box>
 
-        <Button
-          variant="outlined"
-          startIcon={<LogoutOutlined />}
-          onClick={handleLogout}
-          sx={{
-            fontFamily: "monospace",
-            color: "white",
-            borderColor: "white",
-            textTransform: "none",
-            transition: "all 0.3s ease",
-            "&:hover": {
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {userData?.userId && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                padding: "4px 8px",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                borderRadius: "4px",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  fontFamily: "monospace",
+                  color: "white",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {"Logged In As: " + userData.userName}
+              </Typography>
+
+              {formattedLoginTime && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "monospace",
+                    color: "white",
+                    fontSize: "0.9rem",
+                  //  fontStyle: "italic",
+                  }}
+                >
+                  {" | Last Logged in at: " + formattedLoginTime}
+                </Typography>
+              )}
+            </Box>
+          )}
+          <Button
+            variant="outlined"
+            startIcon={<LogoutOutlined />}
+            onClick={handleLogout}
+            sx={{
+              fontFamily: "monospace",
+              color: "white",
               borderColor: "white",
-              backgroundColor: "white",
-              color: "black",
-            },
-          }}
-        >
-          Logout
-        </Button>
+              textTransform: "none",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                borderColor: "white",
+                backgroundColor: "white",
+                color: "black",
+              },
+            }}
+          >
+            Logout
+          </Button>
+        </Box>
       </Toolbar>
     </AppBar>
   );

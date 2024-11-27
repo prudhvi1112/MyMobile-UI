@@ -1,339 +1,213 @@
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
+  addProductToCartAPI,
+  fetchCartData,
   removeFromCart,
   updateCartItem,
-  clearCart,
+  removeProductFromCartAPI
 } from "../../redux/cartSlice";
-
-import { postCart, fetchCartData } from "../../redux/cartSlice"; // import the async action for posting cart
 import {
   Box,
+  Container,
   Typography,
-  Button,
+  Alert,
+  CircularProgress,
   Grid,
   Card,
   CardContent,
   CardMedia,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  IconButton,
+  Button,
 } from "@mui/material";
-import { Delete, ArrowBack } from "@mui/icons-material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const userData = localStorage.getItem("user");
-  const [serverError, setServerError] = useState("");
-  const { items, totalQuantity, totalPrice } = useSelector(
-    (state) => state.cart
-  );
 
-  const handleIncreaseQuantity = (item) => {
-    dispatch(
-      updateCartItem({ id: item.productId, quantity: item.quantity + 1 })
-    );
-  };
+  // Get the cart data from the Redux store
+  const cartData = useSelector((state) => state.cart.items);
+  const loading = useSelector((state) => state.cart.loading); // Assuming loading state is in Redux
+  const error = useSelector((state) => state.cart.error); // Assuming error state is in Redux
+  const Quantity = useSelector((state) => state.cart.totalQuantity); // Assuming error state is in Redux
 
-  const handleDecreaseQuantity = (item) => {
+  const userId = JSON.parse(localStorage.getItem("user"))?.userId;
+
+  const [totalQuantity, setTotalQuantity] = useState(0);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // Fetch cart data when the component mounts
+  useEffect(() => {
+    if (userId) {
+      dispatch(fetchCartData(userId));
+    }
+  }, [dispatch, userId]);
+
+  // Recalculate total price and total quantity when cart data changes
+  useEffect(() => {
+    let quantity = 0;
+    let price = 0;
+
+    cartData.forEach((item) => {
+      quantity += item.quantity;
+      price += item.quantity * item.price;
+    });
+
+    setTotalQuantity(quantity);
+    setTotalPrice(price);
+  }, [cartData]);
+
+  const handleDecreaseQuantity = async (item) => {
     if (item.quantity > 1) {
-      dispatch(
-        updateCartItem({ id: item.productId, quantity: item.quantity - 1 })
-      );
+      const updatedProduct = {
+        ...item,
+        quantity: item.quantity - 1,
+      };
+      try {
+        const actionResult = await dispatch(
+          addProductToCartAPI({ product: updatedProduct })
+        );
+
+        if (addProductToCartAPI.fulfilled.match(actionResult)) {
+          dispatch(updateCartItem(updatedProduct));
+        } else {
+          console.error("Error while updating product quantity:", actionResult.payload);
+        }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+      }
+    } else {
+      dispatch(removeFromCart(item.productId));
     }
   };
 
-  const handleRemoveItem = (id) => {
-    dispatch(removeFromCart(id));
+  const handleIncreaseQuantity = async (item) => {
+    const updatedProduct = {
+      ...item,
+      quantity: item.quantity + 1,
+    };
+    try {
+      const actionResult = await dispatch(
+        addProductToCartAPI({ product: updatedProduct })
+      );
+
+      if (addProductToCartAPI.fulfilled.match(actionResult)) {
+        dispatch(updateCartItem(updatedProduct));
+      } else {
+        console.error("Error while updating product quantity:", actionResult.payload);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+    }
   };
 
-  const handleCartToProduct = () => {
+  const handleRemoveProduct = async (item) => {
+    try {
+      const actionResult = await dispatch(
+        removeProductFromCartAPI({ userId, productId: item.productId })
+      );
+
+      if (removeProductFromCartAPI.fulfilled.match(actionResult)) {
+        dispatch(removeFromCart(item.productId));
+      } else {
+        console.error("Error while removing product from cart:", actionResult.payload);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+    }
+  };
+
+  const handleGoToProductsList = () => {
     navigate("/customer/products");
   };
 
-  const handleCheckout = async () => {
-    const cartRequest = {
-      userId: userData?.userId,
-      userRole: "CUSTOMER",
-      products: items,
-    };
-
-    try {
-      for (let item of items) {
-        // Destructure to get productId and quantity
-        const { productId, quantity } = item;
-
-        const userId = userData?.userId;
-
-        // Dispatch the action with the correct parameters
-        await dispatch(postCart({ userId, productId, quantity })).unwrap();
-      }
-      // Dispatch the postCart async action
-      // If the API call is successful, clear the cart and navigate to the home page
-      dispatch(clearCart());
-      navigate("/cutomer/products");
-    } catch (error) {
-      // Handle any errors here
-      setServerError(error.message || "Failed to post cart");
-    }
-  };
-
-  useEffect(() => {
-    if (userData?.userId) {
-      dispatch(fetchCartData(userData.userId)); // Fetch cart data based on user ID
-    }
-  }, [dispatch, userData]);
-
-  const formatPrice = (price) => {
-    return price.toFixed(2);
-  };
-
-  return (
-    <Box sx={{ padding: 2, minHeight: "100vh" }}>
-      <Typography variant="h4" gutterBottom align="left" color="black">
-        <Button
-          onClick={handleCartToProduct}
-          variant="contained"
-          color="secondary"
-          startIcon={<ArrowBack />}
-          sx={{
-            paddingX: 4,
-            paddingY: 1.5,
-            fontSize: "1rem",
-          }}
-        >
-          Go To Products
-        </Button>
-      </Typography>
-      {items.length === 0 ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "70vh",
-            textAlign: "center",
-            color: "black",
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: "bold",
-              marginBottom: 2,
-            }}
-          >
-            Your Cart is Empty
-          </Typography>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ marginBottom: 3 }}
-          >
-            Looks like you haven't added anything to your cart yet. Start
-            shopping now!
-          </Typography>
-        </Box>
-      ) : (
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={7}>
-            <Grid container spacing={3}>
-              {items.map((item) => (
-                <Grid item xs={12} sm={6} key={item.productId}>
-                  <Card
-                    variant="outlined"
-                    sx={{
-                      padding: 2,
-                      backgroundColor: "white",
-                      color: "black",
-                      display: "flex",
-                      flexDirection: "column",
-                      height: "100%",
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      src={
-                        item.imageOfProduct
-                          ? `data:image/jpeg;base64,${item.imageOfProduct}`
-                          : "https://via.placeholder.com/200/000000/FFFFFF?text=No+Image"
-                      }
-                      alt={item.model || "Product Image"}
-                      sx={{
-                        objectFit: "cover",
-                        border: "2px solid #000",
-                        borderRadius: "4px",
-                      }}
-                    />
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" gutterBottom color="black">
-                        {item.model}
-                      </Typography>
-                      <Typography variant="body1" color="text.primary">
-                        Price: ₹{item.price}
-                      </Typography>
-                      <Typography variant="body1" color="text.primary">
-                        Quantity: {item.quantity}
-                      </Typography>
-                    </CardContent>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        marginTop: 2,
-                      }}
-                    >
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleDecreaseQuantity(item)}
-                        sx={{
-                          margin: 1,
-                          color: "black",
-                          borderColor: "black",
-                        }}
-                        disabled={item.quantity <= 1}
-                      >
-                        -
-                      </Button>
-                      <Typography
-                        variant="body1"
-                        sx={{ marginTop: 1, color: "black" }}
-                      >
-                        {item.quantity}
-                      </Typography>
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleIncreaseQuantity(item)}
-                        sx={{
-                          margin: 1,
-                          color: "black",
-                          borderColor: "black",
-                        }}
-                      >
-                        +
-                      </Button>
-                    </Box>
-
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      onClick={() => handleRemoveItem(item.productId)}
-                      sx={{
-                        marginTop: 2,
-                        width: "100%",
-                        padding: 1,
-                        background: "black",
-                        color: "white",
-                        borderColor: "black",
-                      }}
-                    >
-                      <Delete sx={{ marginRight: 8 }} /> Remove Item
-                    </Button>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
-
-          <Grid item xs={12} md={4} gap={3}>
-            <Card
-              variant="outlined"
-              sx={{ padding: 2, backgroundColor: "white", color: "black" }}
-            >
-              <Typography
-                variant="h6"
-                gutterBottom
-                align="center"
-                color="primary"
-              >
-                Cart Bill
-              </Typography>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Product</TableCell>
-                      <TableCell align="right">Price</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow key={item.productId}>
-                        <TableCell>{item.model}</TableCell>
-                        <TableCell align="right">
-                          ₹{formatPrice(item.price * item.quantity)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <Divider sx={{ marginY: 2 }} />
-
-              <Box
-                sx={{
-                  backgroundColor: "primary.main",
-                  color: "white",
-                  padding: 2,
-                  borderRadius: 2,
-                  textAlign: "center",
-                  marginTop: 2,
-                }}
-              >
-                <Typography variant="h5">
-                  Total Price: ₹{formatPrice(totalPrice)}
+  const CartProducts = () => (
+    <Grid container spacing={2} flex={2}>
+      {cartData.length > 0 ? (
+        cartData.map((item) => (
+          <Grid item xs={12} sm={6} md={4} key={item.productId}>
+            <Card>
+              <CardMedia
+                component="img"
+                src={
+                  item.imageOfProduct
+                    ? `data:image/jpeg;base64,${item.imageOfProduct}`
+                    : "https://via.placeholder.com/200/000000/FFFFFF?text=No+Image"
+                }
+                alt={item.model}
+                sx={{ height: 200, objectFit: "cover" }}
+              />
+              <CardContent>
+                <Typography variant="h6">{item.model}</Typography>
+                <Typography variant="body2">
+                  ₹{new Intl.NumberFormat("en-IN").format(item.price)}
                 </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  marginTop: 2,
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 2,
-                }}
-              >
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={() => dispatch(clearCart())}
-                  sx={{ paddingX: 4 }}
-                >
-                  Clear Cart
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleCheckout}
-                  sx={{ paddingX: 4 }}
-                >
-                  Checkout
-                </Button>
-              </Box>
-              {serverError && (
-                <Typography
-                  variant="body2"
-                  color="error"
-                  sx={{ textAlign: "center", marginTop: 2 }}
-                >
-                  {serverError}
-                </Typography>
-              )}
+                <Typography variant="body2">Quantity: {item.quantity}</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, marginTop: 1 }}>
+                  
+                  <Typography>{Quantity}</Typography>
+                 
+                </Box>
+                <IconButton sx={{ marginTop: 1 }} onClick={() => handleRemoveProduct(item)}>
+                  <DeleteIcon />
+                </IconButton>
+              </CardContent>
             </Card>
           </Grid>
-        </Grid>
+        ))
+      ) : (
+        <Typography variant="h6" sx={{ textAlign: "center", marginTop: 3 }}>
+          Your cart is empty.
+          <Button onClick={handleGoToProductsList}>Go To Products</Button>
+        </Typography>
       )}
+    </Grid>
+  );
+
+  const CartSummary = () => (
+    <Box flex={1}>
+      <Typography variant="h6">Cart Summary</Typography>
+      <Box sx={{ marginTop: 2 }}>
+        <Typography>Total Items: {totalQuantity}</Typography>
+        <Typography>Total Price: ₹{new Intl.NumberFormat("en-IN").format(totalPrice)}</Typography>
+      </Box>
+      <Button
+        variant="contained"
+        color="primary"
+        fullWidth
+        sx={{ marginTop: 2 }}
+        disabled={totalQuantity === 0}
+      >
+        Checkout
+      </Button>
     </Box>
+  );
+
+  return (
+    <Container maxWidth="lg" sx={{ marginTop: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        <Button onClick={handleGoToProductsList} variant="contained">Go To Products</Button>
+      </Typography>
+
+      {loading && <CircularProgress />}
+      {error && <Alert severity="error">{error}</Alert>}
+
+      {cartData.length === 0 && !loading ? (
+        <Typography variant="h6" sx={{ textAlign: "center", marginTop: 3 }}>
+          Your cart is empty.
+          
+        </Typography>
+      ) : (
+        <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={3}>
+          <CartProducts />
+          <CartSummary />
+        </Box>
+      )}
+    </Container>
   );
 };
 

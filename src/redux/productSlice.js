@@ -1,11 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-// import { dummyProducts } from "../mock/Products";
-// import BASE_URL from './API_URL'
 
+// Thunk for fetching products
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
   async () => {
-    const response = await fetch(`http://192.168.0.124:9998/products`);
+    const response = await fetch("http://192.168.0.124:9998/products");
     if (!response.ok) {
       throw new Error("Failed to fetch products");
     }
@@ -13,6 +12,7 @@ export const fetchProducts = createAsyncThunk(
   }
 );
 
+// Product Slice
 const productSlice = createSlice({
   name: "products",
   initialState: {
@@ -36,4 +36,5 @@ const productSlice = createSlice({
   },
 });
 
+// Export the reducer to be added to the store
 export default productSlice.reducer;

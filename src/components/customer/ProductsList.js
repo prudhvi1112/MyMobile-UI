@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import ProductCard from "../customer/ProductCard";
 import { fetchProducts } from "../../redux/productSlice";
+import ProductCard from "../customer/ProductCard";
 import {
   Box,
   Grid,
@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { useNavigate } from "react-router-dom";
+import { fetchCartData } from "../../redux/cartSlice";
 
 const ProductsList = () => {
   const dispatch = useDispatch();
@@ -30,19 +31,21 @@ const ProductsList = () => {
   const [selectedBrand, setSelectedBrand] = useState("");
 
   useEffect(() => {
-    // Fetch products on mount
     dispatch(fetchProducts());
   }, [dispatch]);
 
   const handleCartClick = () => {
+    const userData = JSON.parse(localStorage.getItem("user"));
+    dispatch(fetchCartData(userData?.userId));
     navigate("/customer/cart");
   };
 
   const handlePriceChange = (event) => {
     const { name, value } = event.target;
+    const parsedValue = value ? Math.max(0, parseInt(value, 10)) : "";
     setPriceRange((prev) => ({
       ...prev,
-      [name]: value ? Math.max(0, parseInt(value, 10)) : "",
+      [name]: parsedValue,
     }));
   };
 
@@ -50,20 +53,18 @@ const ProductsList = () => {
     setSelectedBrand(event.target.value);
   };
 
-  // Unique brands for dropdown
-  const uniqueBrands = [...new Set(products.map((product) => product.brand))];
+  const uniqueBrands = [...new Set(products.map((product) => product.brand.trim()))];
 
-  // Filtered products
   const filteredProducts = products.filter(
     (product) =>
       product.price >= (priceRange.min || 0) &&
       product.price <= (priceRange.max || Infinity) &&
-      (selectedBrand === "" || product.brand === selectedBrand)
+      (selectedBrand === "" || product.brand.trim() === selectedBrand)
   );
 
   return (
-    <Box sx={{ display: "flex", padding: 2 }}>
-      {/* Sidebar Filters */}
+    <Box sx={{ display: "flex", padding: 3 }}>
+      {/* Filter Section - 4 columns */}
       <Box
         sx={{
           width: "20%",
@@ -72,8 +73,9 @@ const ProductsList = () => {
           backgroundColor: "#f5f5f5",
           borderRadius: 2,
           position: "sticky",
-          top: "10%",
-          alignSelf: "start",
+          top: "12%", // Keep filters sticky
+          height: "calc(100vh - 50px)", // Full height minus the header
+          overflowY: "auto", // Allow scrolling if content overflows
         }}
       >
         <Typography variant="h6" gutterBottom>
@@ -121,9 +123,6 @@ const ProductsList = () => {
               onChange={handleBrandChange}
               displayEmpty
             >
-              <MenuItem value="">
-                
-              </MenuItem>
               {uniqueBrands.map((brand, index) => (
                 <MenuItem key={index} value={brand}>
                   {brand}
@@ -134,9 +133,9 @@ const ProductsList = () => {
         </Box>
       </Box>
 
-      {/* Products Section */}
-      <Box sx={{ flexGrow: 1 }}>
-        {/* Header with sticky cart icon */}
+      {/* Product List Section - 8 columns */}
+      <Box sx={{ flexGrow: 1, width: "80%" }}>
+        {/* Sticky Header with cart */}
         <Box
           sx={{
             display: "flex",
@@ -147,7 +146,7 @@ const ProductsList = () => {
             padding: 2,
             borderRadius: 2,
             position: "sticky",
-            top: "10%",
+            top: 0, // Sticky at the top
             zIndex: 10,
           }}
         >
@@ -176,37 +175,45 @@ const ProductsList = () => {
         </Box>
 
         {/* Products Grid */}
-        {status === "loading" ? (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : status === "failed" ? (
-          <Typography
-            variant="h6"
-            color="error"
-            align="center"
-            sx={{ mt: 4 }}
-          >
-            Error: {error}
-          </Typography>
-        ) : filteredProducts.length === 0 ? (
-          <Typography
-            variant="h6"
-            color="text.secondary"
-            align="center"
-            sx={{ mt: 4 }}
-          >
-            No products match the applied filters.
-          </Typography>
-        ) : (
-          <Grid container spacing={2} justifyContent="center">
-            {filteredProducts.map((product) => (
-              <Grid item xs={12} sm={6} md={3} key={product.productId}>
-                <ProductCard product={product} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
+        <Box
+          sx={{
+            maxHeight: "calc(100vh - 160px)", // Adjust based on header + filters
+            overflowY: "auto",
+            paddingBottom: 2, // Optional padding to ensure space for scroll
+          }}
+        >
+          {status === "loading" ? (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : status === "failed" ? (
+            <Typography
+              variant="h6"
+              color="error"
+              align="center"
+              sx={{ mt: 4 }}
+            >
+              Error: {error}
+            </Typography>
+          ) : filteredProducts.length === 0 ? (
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              align="center"
+              sx={{ mt: 4 }}
+            >
+              No products match the applied filters.
+            </Typography>
+          ) : (
+            <Grid container spacing={2} justifyContent="center">
+              {filteredProducts.map((product) => (
+                <Grid item xs={12} sm={6} md={4} key={product.productId}>
+                  <ProductCard product={product} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
       </Box>
     </Box>
   );

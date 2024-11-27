@@ -143,9 +143,14 @@ const ProductForm = () => {
     const { name, value } = event.target;
     let updatedValue = value;
 
-    // Convert productId to uppercase
     if (name === "productId") {
       updatedValue = value.toUpperCase();
+    }
+
+    if (name === "brand") {
+      updatedValue = value.trim();
+    } else {
+      updatedValue = value.trim();
     }
 
     setFormData((prev) => ({
@@ -229,10 +234,10 @@ const ProductForm = () => {
         if (error.response && error.response.data) {
           const errorData = error.response.data;
 
-          if (errorData.fieldErrors) {
+          if (errorData) {
             setErrors((prev) => ({
               ...prev,
-              ...errorData.fieldErrors,
+              ...errorData,
               serverError: null,
             }));
           } else {

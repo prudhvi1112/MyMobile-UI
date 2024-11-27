@@ -1,50 +1,61 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
-// Define the async thunk for posting the cart
-export const postCart = createAsyncThunk(
-  "cart/postCart",
-  async (cartData, { rejectWithValue }) => {
-    try {
-      const { userId, productId, quantity } = cartData;
-
-      // Construct the API URL with path parameters
-      const url = `/api/customers/${userId}/products/${productId}?quantity=${quantity}`;
-
-      // Send the POST request
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to post cart");
-      }
-
-      const data = await response.json();
-      return data; // Return the response data on success
-    } catch (error) {
-      return rejectWithValue(error.message || "Failed to post cart");
-    }
-  }
-);
-
-// Define async thunk to fetch cart data from API
 export const fetchCartData = createAsyncThunk(
   "cart/fetchCartData",
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `https://your-api-endpoint.com/cart/${userId}`
+      const response = await axios.get(
+        `http://192.168.0.124:9998/cart/${userId}`
       );
-      if (!response.ok) {
-        throw new Error("Failed to fetch cart data");
-      }
-      const data = await response.json();
-      return data; // Return the cart data on success
+      return response.data; // Assuming response is an array of cart items
     } catch (error) {
-      return rejectWithValue(error.message || "Failed to fetch cart data");
+      return rejectWithValue(
+        error.response?.data || "Failed to fetch cart data"
+      );
+    }
+  }
+);
+
+export const addProductToCartAPI = createAsyncThunk(
+  "cart/addProductToCartAPI",
+  async ({ product, itemQuantity }, { rejectWithValue }) => {
+    const userData = JSON.parse(localStorage.getItem("user"));
+    console.log("product",product);
+    console.log("item quantity", itemQuantity);
+    try {
+      const payload = {
+        ...product,  // Include the entire product object
+        itemQuantity:itemQuantity// Ensure we use the cart item's quantity
+      };
+
+      const response = await axios.post(
+        `http://192.168.0.124:9998/cart/addtocart/${userData.userId}`,
+        payload // Send the updated product object with the correct quantity
+      );
+
+      return response.data; // Return the updated cart data (including the new item)
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || "Failed to add product to cart"
+      );
+    }
+  }
+);
+
+export const removeProductFromCartAPI = createAsyncThunk(
+  "cart/removeProductFromCartAPI",
+  async ({ userId, productId }, { rejectWithValue }) => {
+    try {
+      // Send DELETE request to remove product from cart
+      const response = await axios.delete(
+        `http://192.168.0.124:9998/cart/remove?userId=${userId}&productId=${productId}`
+      );
+      return response.data; // Assuming response contains updated cart info after removal
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || "Failed to remove product from cart"
+      );
     }
   }
 );
@@ -55,94 +66,146 @@ const cartSlice = createSlice({
     items: [],
     totalQuantity: 0,
     totalPrice: 0,
-    status: null, // Status for tracking the async operation (loading, succeeded, failed)
-    error: null, // Error message if the operation fails
+    loading: false,
+    error: null,
   },
   reducers: {
     addToCart: (state, action) => {
-      const product = action.payload;
+      const { productId, quantity, price } = action.payload;
       const existingItem = state.items.find(
-        (item) => item.productId === product.productId
+        (item) => item.productId === productId
       );
 
       if (existingItem) {
-        existingItem.quantity += 1;
-        existingItem.totalPrice = existingItem.price * existingItem.quantity;
+        existingItem.quantity += quantity;
       } else {
-        state.items.push({
-          ...product,
-          quantity: 1,
-          totalPrice: product.price,
-        });
+        state.items.push({ productId, quantity, price });
       }
-      state.totalQuantity += 1;
-      state.totalPrice += product.price;
+
+      state.totalQuantity += quantity;
+      state.totalPrice += price * quantity;
     },
-
-    removeFromCart: (state, action) => {
-      const productId = action.payload;
-      const item = state.items.find((item) => item.productId === productId);
-
-      if (item) {
-        state.totalQuantity -= item.quantity;
-        state.totalPrice -= item.price * item.quantity;
-        state.items = state.items.filter(
-          (item) => item.productId !== productId
-        );
-      }
-    },
-
-    updateCartItem: (state, action) => {
-      const { id: productId, quantity } = action.payload;
-      const item = state.items.find((item) => item.productId === productId);
-
-      if (item) {
-        const difference = quantity - item.quantity;
-        item.quantity = quantity;
-        item.totalPrice = item.price * quantity;
-        state.totalQuantity += difference;
-        state.totalPrice += item.price * difference;
-      }
-    },
-
     clearCart: (state) => {
       state.items = [];
       state.totalQuantity = 0;
       state.totalPrice = 0;
     },
+    removeFromCart: (state, action) => {
+      const productId = action.payload;
+      const itemToRemove = state.items.find(
+        (item) => item.productId === productId
+      );
+
+      if (itemToRemove) {
+        state.totalQuantity -= itemToRemove.quantity;
+        state.totalPrice -= itemToRemove.price * itemToRemove.quantity;
+        state.items = state.items.filter(
+          (item) => item.productId !== productId
+        );
+      }
+    },
+    updateCartItem: (state, action) => {
+      const updatedProduct = action.payload; // Get the updated product object
+      const itemToUpdate = state.items.find(
+        (item) => item.productId === updatedProduct.productId
+      );
+
+      if (itemToUpdate) {
+        const quantityDiff = updatedProduct.itemQuantity - itemToUpdate.quantity;
+        state.totalQuantity += quantityDiff;
+        state.totalPrice += quantityDiff * itemToUpdate.price;
+        itemToUpdate.quantity = updatedProduct.itemQuantity; // Update the quantity of the item
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(postCart.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(postCart.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        // Handle the response from the server if needed
-      })
-      .addCase(postCart.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
-      })
-
-      //getting cart items from cart/api
+      // Fetch cart data
       .addCase(fetchCartData.pending, (state) => {
-        state.status = "loading";
+        state.loading = true;
       })
       .addCase(fetchCartData.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        state.items = action.payload.items;
-        state.totalQuantity = action.payload.totalQuantity;
-        state.totalPrice = action.payload.totalPrice;
+        state.loading = false;
+
+        // Ensure the items array is correctly extracted from the response
+        const items = action.payload || []; // Assuming payload is an array of items
+        state.items = items.map((item) => ({
+          productId: item.productId,
+          quantity: item.itemQuantity,
+          price: item.price,
+          brand: item.brand,
+          imageOfProduct: item.imageOfProduct,
+        }));
+
+        // Calculate total quantity and price
+        state.totalQuantity = items.reduce(
+          (total, item) => total + item.itemQuantity,
+          0
+        );
+        state.totalPrice = items.reduce(
+          (total, item) => total + item.price * item.itemQuantity,
+          0
+        );
       })
       .addCase(fetchCartData.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.loading = false;
+        state.error =
+          action.payload || "An error occurred while fetching the cart data.";
+      })
+      // Add product to cart...
+      .addCase(addProductToCartAPI.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(addProductToCartAPI.fulfilled, (state, action) => {
+        state.loading = false;
+        const product = action.payload;
+        const existingItem = state.items.find(
+          (item) => item.productId === product.productId
+        );
+
+        if (existingItem) {
+          existingItem.quantity += product.itemQuantity;
+        } else {
+          state.items.push({
+            productId: product.productId,
+            quantity: product.itemQuantity,
+            price: product.price,
+            brand: product.brand,
+            imageOfProduct: product.imageOfProduct,
+          });
+        }
+
+        state.totalQuantity = state.items.reduce(
+          (total, item) => total + item.quantity,
+          0
+        );
+        state.totalPrice = state.items.reduce(
+          (total, item) => total + item.price * item.quantity,
+          0
+        );
+      })
+      .addCase(addProductToCartAPI.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to add product to cart";
+      })
+      // Remove product from cart...
+      .addCase(removeProductFromCartAPI.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(removeProductFromCartAPI.fulfilled, (state, action) => {
+        state.loading = false;
+        const { items, totalQuantity, totalPrice } = action.payload;
+        state.items = items || [];
+        state.totalQuantity = totalQuantity || 0;
+        state.totalPrice = totalPrice || 0;
+      })
+      .addCase(removeProductFromCartAPI.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to remove product from cart";
       });
   },
 });
 
-export const { addToCart, removeFromCart, updateCartItem, clearCart } =
+export const { addToCart, clearCart, removeFromCart, updateCartItem } =
   cartSlice.actions;
-
 export default cartSlice.reducer;

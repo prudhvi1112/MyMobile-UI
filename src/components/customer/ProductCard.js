@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,34 +7,42 @@ import {
   CardMedia,
   Box,
   Divider,
+  IconButton,
+  TextField,
 } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { addToCart } from "../../redux/cartSlice";
+import { addProductToCartAPI } from "../../redux/cartSlice";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
+  const [quantity, setQuantity] = useState(0); // Initial quantity is set to 0
 
-  // Destructure product fields with defaults
-  const {
-    productId = "",
-    brand = "",
-    description = "",
-    price = 0,
-    imageOfProduct = "",
-    model = "",
-    productFeatures = "",
-    quantity = 0,
-    color = "",
-  } = product || {};
+  const handleAddToCart = (product, itemQuantity) => {
+    if (itemQuantity > 0) {
+      dispatch(addProductToCartAPI({ product, itemQuantity }))
+        .unwrap()
+        
+    } 
+  };
 
-  const handleAddToCart = () => {
-    dispatch(addToCart(product));
+  // Increase quantity
+  const increaseQuantity = () => {
+    setQuantity((prevQuantity) => prevQuantity + 1); // Increment quantity
+  };
+
+  // Decrease quantity
+  const decreaseQuantity = () => {
+    if (quantity > 0) {
+      setQuantity((prevQuantity) => prevQuantity - 1); // Decrement quantity
+    }
   };
 
   // Format price to handle different numeric formats
   const formattedPrice =
-    typeof price === "number"
-      ? price.toLocaleString("en-US", {
+    typeof product.price === "number"
+      ? product.price.toLocaleString("en-US", {
           style: "currency",
           currency: "INR",
           minimumFractionDigits: 0,
@@ -76,12 +84,12 @@ const ProductCard = ({ product }) => {
       >
         {/* Brand Name */}
         <Typography variant="h6" gutterBottom>
-          {String(brand || "Unknown Brand")}
+          {String(product.brand || "Unknown Brand")}
         </Typography>
 
         {/* Model Name */}
         <Typography variant="subtitle1" gutterBottom>
-          {String(model || "Unknown Model")}
+          {String(product.model || "Unknown Model")}
         </Typography>
 
         {/* Description */}
@@ -97,20 +105,21 @@ const ProductCard = ({ product }) => {
             WebkitLineClamp: 3,
           }}
         >
-          {String(description || "No description available")}
+          {String(product.description || "No description available")}
         </Typography>
 
         <Divider sx={{ marginY: 1 }} />
 
         {/* Additional Information */}
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Color:</strong> {String(color || "N/A")}
+          <strong>Color:</strong> {String(product.color || "N/A")}
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Quantity Available:</strong> {quantity > 0 ? quantity : "Out of Stock"}
+          <strong>Quantity Available:</strong>{" "}
+          {product.quantity > 0 ? product.quantity : "Out of Stock"}
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Features:</strong> {String(productFeatures || "N/A")}
+          <strong>Features:</strong> {String(product.features || "N/A")}
         </Typography>
 
         <Divider sx={{ marginY: 2 }} />
@@ -130,10 +139,36 @@ const ProductCard = ({ product }) => {
           <Typography variant="h6">{formattedPrice}</Typography>
         </Box>
 
+        {/* Quantity Control */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <IconButton
+            onClick={decreaseQuantity}
+            disabled={quantity <= 0}
+            sx={{ backgroundColor: "grey.300", padding: "6px" }}
+          >
+            <RemoveIcon />
+          </IconButton>
+          <TextField
+            value={quantity}
+            name="quantity"
+            onChange={(e) =>
+              setQuantity(Math.max(0, parseInt(e.target.value) || 0))
+            } // Ensures the value is a valid number
+            type="number"
+            sx={{ width: "60px", textAlign: "center" }}
+          />
+          <IconButton
+            onClick={increaseQuantity}
+            sx={{ backgroundColor: "grey.300", padding: "6px" }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Box>
+
         {/* Add to Cart Button */}
         <Button
           variant="contained"
-          onClick={handleAddToCart}
+          onClick={() => handleAddToCart(product, quantity)} // Use the updated quantity
           fullWidth
           sx={{
             backgroundColor: "primary.main",
@@ -142,9 +177,9 @@ const ProductCard = ({ product }) => {
             },
             padding: "10px 0",
           }}
-          disabled={quantity === 0} // Disable button if quantity is 0
+          disabled={product.quantity === 0} // Disable button if quantity is 0
         >
-          {quantity > 0 ? "Add to Cart" : "Out of Stock"}
+          {product.quantity > 0 ? "Add to Cart" : "Out of Stock"}
         </Button>
       </CardContent>
     </Card>
